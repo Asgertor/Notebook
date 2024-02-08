@@ -1,14 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import * as FileSystem from "expo-file-system";
 import { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-} from "react-native";
+import { StyleSheet,Text,View,TextInput,FlatList,TouchableOpacity,} from "react-native";
 const fileName = "notes.txt";
 const fileUri = FileSystem.documentDirectory + fileName;
 
@@ -54,7 +47,6 @@ export default function App() {
       setInputText("");
     }
   }
-
   // Function to clear all notes
   function clearNote() {
     setNotes([]);
@@ -85,6 +77,14 @@ export default function App() {
             <Text style={styles.text}>{note.item.value}</Text>
           )}
         />
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={loadNotesFromFile}>
+            <Text>Load notes</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={() => saveNotesToFile(notes)}>
+            <Text>Save notes</Text>
+          </TouchableOpacity>
+        </View>
 
         <StatusBar style="auto" />
       </View>
