@@ -1,11 +1,47 @@
 import { StatusBar } from "expo-status-bar";
 import * as FileSystem from "expo-file-system";
 import { useState, useEffect } from "react";
-import { StyleSheet,Text,View,TextInput,FlatList,TouchableOpacity,} from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
 const fileName = "notes.txt";
 const fileUri = FileSystem.documentDirectory + fileName;
 
 export default function App() {
+  const Stack = createNativeStackNavigator();
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Notes" component={Notes} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+const Home = ({ navigation, route }) => {
+  function pressMe() {
+    navigation.navigate("Notes");
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={pressMe}>
+          <Text>Go to notes</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const Notes = ({ navigation, route }) => {
   const [inputText, setInputText] = useState("");
   const [notes, setNotes] = useState([]);
 
@@ -51,7 +87,6 @@ export default function App() {
   function clearNote() {
     setNotes([]);
   }
-
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -81,7 +116,10 @@ export default function App() {
           <TouchableOpacity style={styles.button} onPress={loadNotesFromFile}>
             <Text>Load notes</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => saveNotesToFile(notes)}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => saveNotesToFile(notes)}
+          >
             <Text>Save notes</Text>
           </TouchableOpacity>
         </View>
@@ -90,7 +128,7 @@ export default function App() {
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
