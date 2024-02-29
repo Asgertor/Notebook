@@ -6,8 +6,11 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  getDoc,
+  updateDoc,
 } from "firebase/firestore";
-import {useCollection} from "react-firebase-hooks/firestore";
+import { useCollection } from "react-firebase-hooks/firestore";
+import { Alert } from "react-native"; // Make sure to import Alert
 import * as FileSystem from "expo-file-system";
 import { useState, useEffect, useCallback } from "react";
 import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
@@ -20,8 +23,8 @@ import {
   FlatList,
   TouchableOpacity,
   Button,
+  ToastAndroid,
 } from "react-native";
-
 
 const fileName = "notes.txt";
 const fileUri = FileSystem.documentDirectory + fileName;
@@ -39,7 +42,6 @@ export default function App() {
   );
 }
 
-
 const Home = ({ navigation, route }) => {
   function pressMe() {
     navigation.navigate("Notes");
@@ -56,12 +58,12 @@ const Home = ({ navigation, route }) => {
 };
 
 const Notes = ({ navigation, route }) => {
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState("");
   const [notes, setNotes] = useState([]);
   const [values, loading, error] = useCollection(collection(database, "notes"));
-  const data = values?.docs.map((doc) => ({...doc.data(), id: doc.id}));
-  
-  
+  const data = values?.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+
+  /*
   // Function to save notes to a file
   const saveNotesToFile = async (notesArray) => {
     try {
@@ -71,7 +73,9 @@ const Notes = ({ navigation, route }) => {
       console.error("Failed to save notes to file", e);
     }
   };
+  */
 
+  /*
   // Function to load notes from a file
   const loadNotesFromFile = async () => {
     try {
@@ -82,7 +86,9 @@ const Notes = ({ navigation, route }) => {
       console.error("Failed to load notes from file.", e);
     }
   };
+  */
 
+  /*
   // autoload notes when returning to note overview
   useFocusEffect(
     useCallback(() => {
@@ -100,22 +106,60 @@ const Notes = ({ navigation, route }) => {
   useEffect(() => {
     loadNotesFromFile();
   }, []);
+    */
 
   // Function to clear all notes
-  function clearNote() {
-    setNotes([]);
+  async function clearNote() {
+    Alert.alert(
+      "Clear All Notes", // Alert Title
+      "Are you sure you want to delete all notes? This action cannot be undone.", // Alert Message
+      [
+        {
+          text: "Cancel",
+          onPress: () => console.log("Clear action cancelled"),
+          style: "cancel",
+        },
+        {
+          text: "Yes, Delete All",
+          onPress: async () => {
+            try {
+              const querySnapshot = await getDocs(
+                collection(database, "notes")
+              );
+              const deletePromises = querySnapshot.docs.map((doc) =>
+                deleteDoc(doc.ref)
+              );
+              await Promise.all(deletePromises);
+              console.log("All notes deleted from db!");
+              Alert.alert("All notes have been deleted."); // Provide feedback that all notes are deleted
+            } catch (e) {
+              console.error("Error deleting notes: ", e);
+              Alert.alert("Error deleting notes"); // Provide feedback on error
+            }
+          },
+        },
+      ],
+      { cancelable: true } // This allows the alert to be dismissed by tapping outside of it
+    );
   }
-  function handleButton(item) {
-    navigation.navigate("SpecificNote", { message: item });
+
+  function navigationButton(item) {
+    console.log(item);
+
+    navigation.navigate("SpecificNote", { id: item });
   }
 
   // Function to create a note if the input is not empty
   async function pressMe() {
     try {
-    await addDoc(collection(database, "notes"), { 
-      text: inputText });
+      await addDoc(collection(database, "notes"), {
+        text: "• " + inputText,
+      });
       console.log("Note added to db!");
+
       setInputText("");
+      ToastAndroid.show('Note added!', ToastAndroid.LONG);
+
     } catch (e) {
       console.log("Fejl i db: ", e);
     }
@@ -125,15 +169,6 @@ const Notes = ({ navigation, route }) => {
       setInputText("");
     }
     */
-  }
-
-  async function deleteNote(id) {
-    try {
-      await deleteDoc(doc(database, "notes", "id"));
-      console.log("Note deleted from db!");
-    } catch (e) {
-      console.log("Fejl i db: ", e);
-    }
   }
 
   return (
@@ -157,19 +192,17 @@ const Notes = ({ navigation, route }) => {
         <FlatList
           style={styles.flatList}
           data={data}
-
-          renderItem={( note ) => (
+          renderItem={(note) => (
             <TouchableOpacity
               style={styles.button2}
-              onPress={() => deleteNote(note.item.id)}
+              onPress={() => navigationButton(note.item.id)}
             >
               <Text>{note.item.text.substring(0, 25)}</Text>
             </TouchableOpacity>
           )}
-          
         />
 
-        <View style={styles.buttonContainer}>
+        {/* <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={loadNotesFromFile}>
             <Text>Load notes</Text>
           </TouchableOpacity>
@@ -179,7 +212,7 @@ const Notes = ({ navigation, route }) => {
           >
             <Text>Save notes</Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         <StatusBar style="auto" />
       </View>
@@ -188,10 +221,76 @@ const Notes = ({ navigation, route }) => {
 };
 
 const SpecificNote = ({ navigation, route }) => {
-  const message = route.params?.message;
-  const [notes, setNotes] = useState([]);
-  const [isEditing, setIsEditing] = useState(false); // State to toggle edit mode
-  const [inputText, setInputText] = useState(message ? message.value : "");
+  const noteId = route.params?.id; // Assuming this is how you pass the note ID
+  const [note, setNote] = useState(null);
+  const [inputText, setInputText] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+
+  async function deleteNote(id) {
+    Alert.alert(
+      "Delete Note", // Alert Title
+      "Are you sure you want to delete this note?", // Alert Message
+      [
+        {
+          text: "Cancel",
+          onPress: () => console.log("Cancel Pressed"),
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(database, "notes", id));
+              console.log("Note deleted from db!");
+              navigation.navigate("Notes"); // Navigate back after deletion
+            } catch (e) {
+              console.error("Error deleting note: ", e);
+              Alert.alert("Error deleting note"); // Error feedback
+            }
+          },
+        },
+      ],
+      { cancelable: true } // This allows the alert to be dismissed by tapping outside of it
+    );
+  }
+
+  useEffect(() => {
+    const fetchNote = async () => {
+      if (noteId) {
+        try {
+          const noteRef = doc(database, "notes", noteId);
+          const noteSnap = await getDoc(noteRef);
+          if (noteSnap.exists()) {
+            const noteData = noteSnap.data();
+            setNote(noteData); // Set the fetched note
+            setInputText(noteData.text); // Adjust this line if your document structure is different
+          } else {
+            console.log("No such document!");
+          }
+        } catch (e) {
+          console.error("Error fetching note: ", e);
+        }
+      }
+    };
+    fetchNote();
+  }, [noteId]);
+
+  const handleTextChange = (text) => {
+    setInputText(text);
+  };
+
+  async function handleSave() {
+    if (noteId) {
+      try {
+        const noteRef = doc(database, "notes", noteId);
+        await updateDoc(noteRef, { text: inputText });
+        console.log("Note updated in db!");
+        ToastAndroid.show('Note updated!', ToastAndroid.LONG);
+      } catch (e) {
+        console.log("Error updating note: ", e);
+      }
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -211,9 +310,17 @@ const SpecificNote = ({ navigation, route }) => {
             <Text style={styles.title}>{inputText}</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.button} onPress={handleSave}>
-          <Text>Save</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={handleSave}>
+            <Text>Save</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => deleteNote(noteId)}
+          >
+            <Text>Delete</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -233,9 +340,7 @@ const styles = StyleSheet.create({
     marginTop: 50,
     alignItems: "center",
     shadowColor: "black",
-    shadowOpacity: 1,
-    shadowRadius: 7,
-    elevation: 5,
+    elevation: 10,
   },
   textInput: {
     backgroundColor: "#004c4c",
