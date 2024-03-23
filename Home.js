@@ -51,21 +51,31 @@ import {
 import MapView, { Callout, Marker, CustomCalloutView } from "react-native-maps";
 import * as Location from "expo-location";
 
-import {Notes} from './Notes';
-import {Map} from './Map';
-import {SpecificNote} from './SpecificNote';
-import {Home} from './Home';
+import { styles } from "./styles";
 
-export default function App() {
-  const Stack = createNativeStackNavigator();
+
+const fileName = "notes.txt";
+const fileUri = FileSystem.documentDirectory + fileName;
+
+export const Home = ({ navigation, route }) => {
+  function navigateToNotes() {
+    navigation.navigate("Notes");
+  }
+  function navigateToMap() {
+    navigation.navigate("Map");
+  }
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="Notes" component={Notes} />
-        <Stack.Screen name="SpecificNote" component={SpecificNote} />
-        <Stack.Screen name="Map" component={Map} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <View style={[styles.container]}>
+      <TouchableOpacity
+        style={[styles.card, { width: "90%" }]}
+        onPress={navigateToNotes}
+      >
+        <Text> Go to Notes</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.card]} onPress={navigateToMap}>
+        <Text> Go to Map</Text>
+      </TouchableOpacity>
+    </View>
   );
-}
+};
